@@ -1,0 +1,118 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --primary: #3a7c6a;
+    --primary-dark: #2a6b59;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Amélioration du touch sur mobile */
+  @media (max-width: 768px) {
+    * {
+      cursor: default !important;
+    }
+
+    button,
+    a,
+    [role='button'] {
+      cursor: pointer !important;
+      min-height: 44px; /* Taille minimale pour les éléments tactiles */
+      min-width: 44px; /* Taille minimale pour les éléments tactiles */
+    }
+
+    /* Ajuster la taille de la police pour le mobile */
+    h1 {
+      font-size: clamp(1.75rem, 8vw, 3rem);
+      line-height: 1.2;
+    }
+
+    h2 {
+      font-size: clamp(1.5rem, 4vw, 2.5rem);
+      line-height: 1.3;
+    }
+
+    p {
+      font-size: clamp(1rem, 3vw, 1.125rem);
+      line-height: 1.5;
+    }
+  }
+
+  /* Désactiver les animations sur les appareils qui préfèrent le mouvement réduit */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+.animate-fade-in-delay {
+  animation: fadeIn 0.6s ease-out 0.3s forwards;
+  opacity: 0;
+}
+
+.animate-fade-in-delay-2 {
+  animation: fadeIn 0.6s ease-out 0.6s forwards;
+  opacity: 0;
+}
+
+/* Optimisations pour le défilement */
+.smooth-scroll {
+  @apply scroll-smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Styles pour les modales */
+.modal-overlay {
+  @apply fixed inset-0 bg-black bg-opacity-50 z-50;
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  @apply fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 
+         bg-white rounded-xl shadow-xl w-full max-w-md mx-4 max-h-[90vh] 
+         overflow-y-auto z-50;
+}
+
+/* Transitions entre sections */
+section {
+  position: relative;
+  transition: background-color 0.3s ease;
+}
+
+/* Optimisations pour les images */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Amélioration de l'accessibilité du focus */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
