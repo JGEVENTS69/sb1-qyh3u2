@@ -86,18 +86,6 @@
   -webkit-overflow-scrolling: touch;
 }
 
-/* Styles pour les modales */
-.modal-overlay {
-  @apply fixed inset-0 bg-black bg-opacity-50 z-50;
-  backdrop-filter: blur(4px);
-}
-
-.modal-content {
-  @apply fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 
-         bg-white rounded-xl shadow-xl w-full max-w-md mx-4 max-h-[90vh] 
-         overflow-y-auto z-50;
-}
-
 /* Transitions entre sections */
 section {
   position: relative;
@@ -116,3 +104,29 @@ img {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
+.leaflet-marker-icon {
+  width: 40px !important;   /* Largeur personnalisée */
+  height: 40px !important;  /* Hauteur personnalisée */
+}
+@media (max-width: 768px) {
+  .leaflet-marker-icon {
+    width: 32px !important;
+    height: 32px !important;
+  }
+}
+
+* Ajustement des z-index des couches Leaflet */
+.leaflet-container {
+  z-index: 0 !important; /* Assurez-vous que la carte n'a pas un z-index élevé */
+}
+
+.leaflet-popup {
+  z-index: 100 !important; /* Les marqueurs doivent rester au-dessus de la carte */
+}
+
+/* Vos boutons flottants doivent dépasser Leaflet */
+.floating-button {
+  z-index: 500 !important;
+}
+
+

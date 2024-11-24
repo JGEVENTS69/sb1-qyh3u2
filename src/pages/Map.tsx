@@ -3,10 +3,10 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { LatLng, Icon, DivIcon } from 'leaflet';
 import {
   BookOpen,
-  Navigation as NavigationIcon,
   Crosshair,
   Clock,
   User,
+  Plus,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { BookBox } from '../types';
@@ -46,11 +46,54 @@ const useGeolocation = () => {
   return { location, error, getLocation };
 };
 
+const AddBoxButton = () => {
+  const navigate = useNavigate();
+
+  return (
+    <>
+      {/* Version Desktop - Bouton centré en bas */}
+      <div className="hidden md:block leaflet-bottom w-full pointer-events-none" 
+           style={{ marginBottom: '24px' }}>
+        <div className="flex justify-center w-full pointer-events-auto">
+          <button
+            onClick={() => navigate('/add-box')}
+            className="bg-primary text-white px-6 py-3 rounded-lg shadow-md hover:bg-primary-dark transition-colors focus:outline-none focus:ring-2 focus:ring-primary flex items-center space-x-2"
+          >
+            <Plus className="h-5 w-5" />
+            <span>Ajoutez une boîte à livres</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Version Mobile - Petit bouton au-dessus de la géolocalisation */}
+      <div className="md:hidden leaflet-bottom leaflet-right" 
+           style={{ marginBottom: '24px', marginRight: '10px' }}>
+        <div className="leaflet-control flex flex-col space-y-2">
+          <button
+            onClick={() => navigate('/add-box')}
+            className="bg-white p-2 rounded-lg shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
+            title="Ajouter une boîte à livres"
+            style={{
+              width: '32px',
+              height: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Plus className="h-4 w-4 text-gray-700" />
+          </button>
+        </div>
+      </div>
+    </>
+  );
+};
+
 const LocationButton = () => {
   const map = useMap();
   const { location, getLocation } = useGeolocation();
 
-  const handleClick = () => {
+  const handleLocationClick = () => {
     getLocation();
     if (location) {
       map.flyTo([location.coords.latitude, location.coords.longitude], 15, {
@@ -70,7 +113,7 @@ const LocationButton = () => {
     >
       <div className="leaflet-control">
         <button
-          onClick={handleClick}
+          onClick={handleLocationClick}
           className="bg-white p-2 rounded-lg shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
           title="Me localiser"
           style={{
@@ -100,6 +143,7 @@ const Map = () => {
   const [bookBoxes, setBookBoxes] = useState<BookBox[]>([]);
   const [loading, setLoading] = useState(true);
   const [markerIcon, setMarkerIcon] = useState<string | null>(null);
+  const [selectedMarkerId, setSelectedMarkerId] = useState<number | null>(null);
   const { location } = useGeolocation();
   const navigate = useNavigate();
 
@@ -111,14 +155,12 @@ const Map = () => {
   useEffect(() => {
     const fetchBookBoxes = async () => {
       try {
-        // Récupérer l'icône du marqueur depuis Supabase Storage
         const {
           data: { publicUrl },
         } = supabase.storage.from('assets').getPublicUrl('marker-icon.png');
 
         setMarkerIcon(publicUrl);
 
-        // Récupérer les boîtes à livres
         const { data, error } = await supabase.from('book_boxes').select('*');
 
         if (error) throw error;
@@ -133,30 +175,59 @@ const Map = () => {
     fetchBookBoxes();
   }, []);
 
-  const bookBoxIcon = markerIcon
-    ? new Icon({
-        iconUrl: markerIcon, // URL de l'icône
-        iconSize: [8, 24], // Diminue ici les dimensions, par exemple [16, 24] pour une taille plus petite
-        iconAnchor: [8, 24], // Déplacer l'ancrage pour centrer correctement l'icône
-        popupAnchor: [12, -24], // Si nécessaire, ajuste l'ancrage du popup
-      })
-    : new DivIcon({
-        className: 'custom-div-icon',
-        html: `<div style="background-color: #3A7C6A; width: 8px; height: 8px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.3);"></div>`,
-        iconSize: [8, 8], // Ajuste cette taille
-        iconAnchor: [6, 6], // Ancrage centré pour une taille plus petite
-      });
+  const createBookBoxIcon = (isSelected: boolean) =>
+    markerIcon
+      ? new Icon({
+          iconUrl: 'https://thttmiedctypjsjwdeil.supabase.co/storage/v1/object/public/assets/Fichier%201.svg',
+          iconSize: isSelected ? [60, 60] : [46, 46],
+          iconAnchor: [23, 46],
+          popupAnchor: [0, -46],
+        })
+      : new DivIcon({
+          className: 'custom-div-icon',
+          html: `<div style="background-color: #3A7C6A; width: ${
+            isSelected ? '10px' : '8px'
+          }; height: ${isSelected ? '10px' : '8px'}; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.3);"></div>`,
+          iconSize: [8, 8],
+          iconAnchor: [6, 6],
+        });
 
-  const userIcon = new DivIcon({
-    className: 'custom-div-icon',
-    html: `
-          <div style="background-color: #4285F4; width: 10px; height: 10px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.3);">
-            <div style="background-color: rgba(66, 133, 244, 0.2); width: 6px; height: 6px; border-radius: 50%; position: absolute; top: -2px; left: -2px;"></div>
-          </div>
-        `,
-    iconSize: [12, 12], // Nouvelle taille réduite
-    iconAnchor: [6, 6], // Centrer l'icône
-  });
+        const userIcon = new DivIcon({
+          className: 'custom-pulse-icon',
+          html: `
+            <div class="pulse-icon"></div>
+          `,
+          iconSize: [12, 12],  // Taille de l'icône
+          iconAnchor: [15, 15], // Ancrage de l'icône (centré)
+        });
+
+        const style = document.createElement('style');
+style.innerHTML = `
+  .custom-pulse-icon .pulse-icon {
+    width: 12px;
+    height: 12px;
+    border-radius: 100%;
+    background-color: #d8596e;
+    box-shadow: 0 0 0 rgba(66, 133, 244, 0.4);
+    animation: pulse 1.5s infinite;
+  }
+
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 0 0 rgba(66, 133, 244, 0.4);
+    }
+    30% {
+      transform: scale(1.3);
+      box-shadow: 0 0 10px rgba(66, 133, 244, 0.6);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 rgba(66, 133, 244, 0.4);
+    }
+  }
+`;
+document.head.appendChild(style);
 
   return (
     <div className="h-[calc(100vh-4rem)]">
@@ -175,6 +246,7 @@ const Map = () => {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
+          <AddBoxButton />
           <LocationButton />
 
           {userPosition && (
@@ -187,7 +259,10 @@ const Map = () => {
             <Marker
               key={box.id}
               position={[box.latitude, box.longitude]}
-              icon={bookBoxIcon}
+              icon={createBookBoxIcon(selectedMarkerId === box.id)}
+              eventHandlers={{
+                click: () => setSelectedMarkerId(box.id),
+              }}
             >
               <Popup>
                 <div className="w-full">

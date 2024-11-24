@@ -3,13 +3,14 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { supabase } from '../lib/supabase';
 import Button from '../components/Button';
-import { User, Upload, Trash2, BookOpen, Menu } from 'lucide-react';
+import { User, Upload, Trash2, BookOpen, Menu, Heart, ChevronUp, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const Profile = () => {
   const { user, signOut } = useAuthStore();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
+  const [isStatsOpen, setIsStatsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [boxCount, setBoxCount] = useState(0);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -43,18 +44,31 @@ const Profile = () => {
       return;
     }
 
-    // Récupérer le nombre de boîtes créées par l'utilisateur
-    const fetchBoxCount = async () => {
-      const { count } = await supabase
+    // Récupérer le nombre de boîtes créées et en favoris
+  const fetchBoxCounts = async () => {
+    try {
+      // Nombre de boîtes créées
+      const { count: boxCountResult } = await supabase
         .from('book_boxes')
         .select('*', { count: 'exact', head: true })
         .eq('creator_id', user.id);
 
-      setBoxCount(count || 0);
-    };
+      setBoxCount(boxCountResult || 0);
 
-    fetchBoxCount();
-  }, [user, navigate]);
+      // Nombre de boîtes en favoris
+      const { count: favoriteCountResult } = await supabase
+        .from('favorites')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      setFavoriteBoxCount(favoriteCountResult || 0);
+    } catch (error) {
+      toast.error("Erreur lors du chargement des boîtes et des favoris.");
+    }
+  };
+
+  fetchBoxCounts();
+}, [user, navigate]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,6 +161,13 @@ const Profile = () => {
     navigate('/my-boxes', { state: { activeTab: tab } });
   };
 
+  const [favoriteBoxCount, setFavoriteBoxCount] = useState(0);
+
+ const favoriteBoxLimit = isFreemium ? 5 : Infinity;
+ const remainingFavoriteBoxes = isFreemium
+  ? favoriteBoxLimit - favoriteBoxCount
+  : Infinity;
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <div className="bg-white rounded-lg shadow p-6">
@@ -234,40 +255,113 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* Statistiques des boîtes */}
         <div className="bg-gray-50 rounded-lg p-4 mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center">
-              <BookOpen className="h-5 w-5 text-primary mr-2" />
-              <h3 className="font-medium">Vos boîtes à livres</h3>
-            </div>
-            <span className="text-sm text-gray-600">
-              {boxCount} {isFreemium ? `/ ${boxLimit}` : ''} boîtes
-            </span>
+  {/* Titre principal du bloc */}
+  <div className="flex items-center justify-between">
+    <h3 className="text-lg font-medium text-primary">Status Freemium</h3>
+    <button
+      onClick={() => setIsStatsOpen(!isStatsOpen)}
+      className="p-2 rounded-md text-gray-600"
+    >
+      {/* Icône personnalisée */}
+      {isStatsOpen ? (
+        <span className="flex items-center space-x-1">
+          <ChevronUp className="h-5 w-5" />
+        </span>
+      ) : (
+        <span className="flex items-center space-x-1">
+          <ChevronDown className="h-5 w-5" />
+        </span>
+      )}
+    </button>
+  </div>
+
+  {/* Contenu du dropdown (statistiques) */}
+  {isStatsOpen && (
+    <div className="mt-4 space-y-6">
+      {/* Section des boîtes créées */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center">
+            <BookOpen className="h-5 w-5 text-primary mr-2" />
+            <h4 className="font-medium">Vos boîtes à livres</h4>
           </div>
-          {isFreemium && (
-            <div className="mt-2">
-              <div className="h-2 bg-gray-200 rounded-full">
-                <div
-                  className="h-2 bg-primary rounded-full transition-all"
-                  style={{ width: `${(boxCount / boxLimit) * 100}%` }}
-                />
-              </div>
-              <p className="text-sm text-gray-600 mt-2">
-                {remainingBoxes > 0
-                  ? `Il vous reste ${remainingBoxes} boîte${
-                      remainingBoxes > 1 ? 's' : ''
-                    } à ajouter`
-                  : 'Vous avez atteint la limite de boîtes pour un compte Freemium'}
-              </p>
-            </div>
-          )}
+          <span className="text-sm text-gray-600">
+            {boxCount} {isFreemium ? `/ ${boxLimit}` : ''} boîtes
+          </span>
         </div>
+        {isFreemium && (
+          <>
+            <div className="h-2 bg-gray-200 rounded-full">
+              <div
+                className="h-2 bg-primary rounded-full transition-all"
+                style={{ width: `${(boxCount / boxLimit) * 100}%` }}
+              />
+            </div>
+            <p className="text-sm text-gray-600 mt-2">
+              {remainingBoxes > 0
+                ? `Il vous reste ${remainingBoxes} boîte${
+                    remainingBoxes > 1 ? 's' : ''
+                  } à ajouter`
+                : 'Vous avez atteint la limite de boîtes pour un compte Freemium'}
+            </p>
+          </>
+        )}
+      </div>
+
+      {/* Section des boîtes en favoris */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center">
+            <Heart className="h-5 w-5 text-primary mr-2" />
+            <h4 className="font-medium">Vos boîtes en favoris</h4>
+          </div>
+          <span className="text-sm text-gray-600">
+            {favoriteBoxCount} {isFreemium ? `/ ${favoriteBoxLimit}` : ''} favoris
+          </span>
+        </div>
+        {isFreemium && (
+          <>
+            <div className="h-2 bg-gray-200 rounded-full">
+              <div
+                className="h-2 bg-primary rounded-full transition-all"
+                style={{
+                  width: `${(favoriteBoxCount / favoriteBoxLimit) * 100}%`,
+                }}
+              />
+            </div>
+            <p className="text-sm text-gray-600 mt-2">
+              {remainingFavoriteBoxes > 0
+                ? `Il vous reste ${remainingFavoriteBoxes} boîte${
+                    remainingFavoriteBoxes > 1 ? 's' : ''
+                  } à ajouter en favoris`
+                : 'Vous avez atteint la limite de favoris pour un compte Freemium'}
+            </p>
+          </>
+        )}
+      </div>
+      {isFreemium && (
+              <div className="bg-primary p-4 rounded-md">
+                <h3 className="font-medium mb-2 text-white">Passez à Premium</h3>
+                <p className="text-sm text-white mb-4">
+                  Profitez d'avantages exclusifs et créez un nombre illimité de
+                  boîtes à livres.
+                </p>
+                <Button
+                variant="outline"
+                className='bg-white'>
+                  Passez à Premium
+                  </Button>
+              </div>
+            )}
+    </div>
+  )}
+</div>
 
         {isEditing ? (
           <form onSubmit={handleUpdateProfile} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-bold text-primary">
                 Prénom
               </label>
               <input
@@ -276,11 +370,11 @@ const Profile = () => {
                 onChange={(e) =>
                   setFormData({ ...formData, first_name: e.target.value })
                 }
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                className="mt-1 block w-full h-9 rounded-md outline outline-1 outline-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm px-2 py-2"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-bold text-primary">
                 Nom
               </label>
               <input
@@ -289,11 +383,11 @@ const Profile = () => {
                 onChange={(e) =>
                   setFormData({ ...formData, last_name: e.target.value })
                 }
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                className="mt-1 block w-full h-9 rounded-md outline outline-1 outline-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm px-2 py-2"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-bold text-primary">
                 Nom d'utilisateur
               </label>
               <input
@@ -302,7 +396,7 @@ const Profile = () => {
                 onChange={(e) =>
                   setFormData({ ...formData, username: e.target.value })
                 }
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                className="mt-1 block w-full h-9 rounded-md outline outline-1 outline-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm px-2 py-2"
               />
             </div>
             <div className="flex space-x-2">
@@ -321,37 +415,25 @@ const Profile = () => {
           </form>
         ) : (
           <div className="space-y-4">
-            <div>
+             <div>
               <Button onClick={() => setIsEditing(true)}>
                 Modifier le profil
               </Button>
             </div>
-            {isFreemium && (
-              <div className="bg-gray-50 p-4 rounded-md">
-                <h3 className="font-medium mb-2">Passez à Premium</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Profitez d'avantages exclusifs et créez un nombre illimité de
-                  boîtes à livres.
-                </p>
-                <Button>Passer à Premium</Button>
-              </div>
-            )}
-            <div className="border-t pt-4">
+            <div className="border-t pt-3">
               <Button
                 variant="outline"
                 onClick={() => signOut()}
-                className="mr-2"
-              >
+                className="mr-2">
                 Se déconnecter
               </Button>
               <Button
                 variant="secondary"
                 onClick={handleDeleteAccount}
-                className="text-red-600 hover:bg-red-50"
-              >
-                <Trash2 className="h-4 w-4 mr-1" />
-                Supprimer le compte
+                className="mr-2 mt-2 bg-[#d8596e] text-white hover:text-[#d8596e]">
+                Supprimer mon compte
               </Button>
+              
             </div>
           </div>
         )}

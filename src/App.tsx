@@ -13,6 +13,8 @@ import BoxDetails from './pages/BoxDetails';
 import Auth from './pages/Auth';
 import Landing from './pages/Landing';
 import Pricing from './pages/Pricing';
+import 'leaflet/dist/leaflet.css';
+
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuthStore();
@@ -26,6 +28,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 function App() {
   const { setUser } = useAuthStore();
+
+  
 
   useEffect(() => {
     // Check active session

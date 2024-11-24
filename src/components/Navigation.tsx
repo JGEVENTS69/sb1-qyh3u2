@@ -8,6 +8,15 @@ const Navigation = () => {
   const { user, signOut } = useAuthStore();
   const location = useLocation();
   const navigate = useNavigate();
+
+  const handleLogoClick = () => {
+    if (user) {
+      navigate('/map');  // Redirige l'utilisateur vers la carte
+    } else {
+      navigate('/'); // Redirige l'utilisateur vers la page de connexion
+    }
+  };
+
   const scrollToSection = (id: string) => {
     const section = document.getElementById(id);
     if (section) {
@@ -22,14 +31,14 @@ const Navigation = () => {
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between h-16">
           <div className="flex">
-            {/* Logo */}
-            <Link to="/" className="flex items-center">
+            {/* Logo avec redirection conditionnelle */}
+            <div className="flex items-center cursor-pointer" onClick={handleLogoClick}>
               <img
                 src="https://thttmiedctypjsjwdeil.supabase.co/storage/v1/object/public/assets/Logo-long.png?t=2024-11-22T23%3A51%3A02.438Z"
                 alt="Logo Bookineo"
                 className="h-12 w-30"
               />
-            </Link>
+            </div>
 
             {/* Navigation Links */}
             <div className="hidden sm:ml-6 sm:flex sm:space-x-4">
